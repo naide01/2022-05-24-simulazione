@@ -5,9 +5,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
 import it.polito.tdp.itunes.model.Album;
+import it.polito.tdp.itunes.model.Arco;
 import it.polito.tdp.itunes.model.Artist;
 import it.polito.tdp.itunes.model.Genre;
 import it.polito.tdp.itunes.model.MediaType;
@@ -76,9 +80,11 @@ public class ItunesDAO {
 		return result;
 	}
 	
-	public List<Track> getAllTracks(){
+	public Map<Integer, Track> getAllTracks(Map<Integer, Track> idMap){
 		final String sql = "SELECT * FROM Track";
 		List<Track> result = new ArrayList<Track>();
+		
+		Map<Integer, Track> mappa = new HashMap<Integer, Track>();
 		
 		try {
 			Connection conn = DBConnect.getConnection();
@@ -86,21 +92,26 @@ public class ItunesDAO {
 			ResultSet res = st.executeQuery();
 
 			while (res.next()) {
-				result.add(new Track(res.getInt("TrackId"), res.getString("Name"), 
+				if(!mappa.containsKey(res.getInt("TrackId"))) {
+				Track t = (new Track(res.getInt("TrackId"), res.getString("Name"), 
 						res.getString("Composer"), res.getInt("Milliseconds"), 
 						res.getInt("Bytes"),res.getDouble("UnitPrice")));
-			
+				result.add(t);
+				mappa.put(t.getTrackId(), t);
+				}
 			}
 			conn.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new RuntimeException("SQL Error");
 		}
-		return result;
+		return mappa;
 	}
 	
 	public List<Genre> getAllGenres(){
-		final String sql = "SELECT * FROM Genre";
+		final String sql = "SELECT distinct * "
+				+ "FROM Genre "
+				+ "ORDER BY Name ASC ";
 		List<Genre> result = new LinkedList<>();
 		
 		try {
@@ -138,7 +149,54 @@ public class ItunesDAO {
 		}
 		return result;
 	}
+	
+	public List<Track> getVertici(Genre genere){
+		final String sql = "select * "
+				+ "from track "
+				+ "where GenreId = ? ";
+		List<Track> result = new ArrayList<Track>();
+		
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, genere.getGenreId());
+			ResultSet res = st.executeQuery();
 
+			while (res.next()) {
+				result.add(new Track(res.getInt("TrackId"), res.getString("Name"), 
+						res.getString("Composer"), res.getInt("Milliseconds"), 
+						res.getInt("Bytes"),res.getDouble("UnitPrice")));
+			}
+			conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException("SQL Error");
+		}
+		return result;
+	}
 	
-	
+	public List<Arco> getArco(Genre genere, Map<Integer, Track> idMap){
+		String sql = "select t1.TrackId as t1, t2.TrackId as t2, abs(t1.Milliseconds - t2.Milliseconds) as peso "
+					+ "from track t1, track t2 "
+					+ "where t1.TrackId > t2.TrackId and t1.MediaTypeId = t2.MediaTypeId and t1.GenreId = ? and t1.GenreId = t2.GenreId ";
+		List<Arco> result = new ArrayList<Arco>();
+		
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, genere.getGenreId());
+			ResultSet res = st.executeQuery();
+
+			while (res.next()) {
+				result.add(new Arco(idMap.get(res.getInt("t1")), idMap.get(res.getInt("t2")),res.getInt("peso")));
+			}
+			conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException("SQL Error");
+		}
+		return result;
+		
+	}
+		
 }

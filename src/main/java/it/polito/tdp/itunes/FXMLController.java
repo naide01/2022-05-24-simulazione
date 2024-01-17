@@ -6,6 +6,8 @@ package it.polito.tdp.itunes;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.itunes.model.Genre;
 import it.polito.tdp.itunes.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -37,7 +39,7 @@ public class FXMLController {
     private ComboBox<?> cmbCanzone; // Value injected by FXMLLoader
 
     @FXML // fx:id="cmbGenere"
-    private ComboBox<?> cmbGenere; // Value injected by FXMLLoader
+    private ComboBox<Genre> cmbGenere; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtMemoria"
     private TextField txtMemoria; // Value injected by FXMLLoader
@@ -52,11 +54,29 @@ public class FXMLController {
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
+    	txtResult.clear();
+    	Genre genere = this.cmbGenere.getValue();
+    	if (genere == null) {
+    		txtResult.setText("Scegliere un genere dal menù a tendina!\n");
+    		return;
+    	}
+    	this.model.creaGrafo(genere);
+    	this.txtResult.setText("Il grafo è stato correttamente creato \n");
+    	this.txtResult.appendText("#vertici: " + this.model.vertexSet());
+    	this.txtResult.appendText("#archi: " + this.model.EdgeSet());
+    	
 
     }
 
     @FXML
     void doDeltaMassimo(ActionEvent event) {
+    	txtResult.clear();
+    	if (this.cmbGenere.getValue()==null) {
+    		txtResult.setText("Creare prima il grafo! \n");
+    		return;
+    	}
+    	String result =this.model.trovaCollegate().toString();
+    	txtResult.setText(result);
     	
     	
     }
@@ -75,6 +95,7 @@ public class FXMLController {
     
     public void setModel(Model model) {
     	this.model = model;
+    	this.cmbGenere.getItems().setAll(this.model.getGeneri());
     }
 
 }
